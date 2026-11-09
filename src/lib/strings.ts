@@ -1,0 +1,36 @@
+// All UI text lives here so a language picker can swap this object later.
+export const strings = {
+  tabs: { search: "Search", collection: "Collection" },
+  search: {
+    placeholder: "Title, author or ISBN",
+    hint: "Search for a book to add it to your collection.",
+    noResults: "No books found",
+    add: "Add",
+    inCollection: "In collection",
+    retry: "Try again",
+    missingKey: "Search isn't set up yet: the Google Books API key is missing.",
+    rateLimited: "Too many searches right now. Please try again later.",
+    failed: "Something went wrong. Check your connection and try again.",
+  },
+  collection: {
+    empty: "Your collection is empty.",
+    findBooks: "Find books",
+    loadFailed: "Your collection couldn't be opened.",
+  },
+  book: {
+    notFound: "This book couldn't be found.",
+    unknownAuthor: "Unknown author",
+    status: "Reading status",
+    rating: "Rating",
+    note: "Note",
+    notePlaceholder: "Write a note…",
+    addToCollection: "Add to collection",
+    remove: "Remove from collection",
+    removeTitle: "Remove from collection?",
+    removeMessage: "Your rating and note for this book will be deleted.",
+    cancel: "Cancel",
+    removeConfirm: "Remove",
+    saveFailed: "Couldn't save your changes.",
+  },
+  statuses: { want_to_read: "Want to read", reading: "Reading", read: "Read" },
+} as const;
