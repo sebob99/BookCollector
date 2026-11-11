@@ -16,6 +16,9 @@ export const strings = {
     empty: "Your collection is empty.",
     findBooks: "Find books",
     loadFailed: "Your collection couldn't be opened.",
+    showList: "Show as list",
+    showCovers: "Show as covers",
+    bookLabel: (title: string, authors: string[]) => (authors.length ? `${title}, by ${authors.join(", ")}` : title),
   },
   book: {
     notFound: "This book couldn't be found.",
