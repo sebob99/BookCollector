@@ -1,6 +1,6 @@
 // All UI text lives here so a language picker can swap this object later.
 export const strings = {
-  tabs: { search: "Search", collection: "Collection" },
+  tabs: { search: "Search", collection: "Collection", stats: "Stats" },
   search: {
     placeholder: "Title, author or ISBN",
     hint: "Search for a book to add it to your collection.",
@@ -16,8 +16,16 @@ export const strings = {
     empty: "Your collection is empty.",
     findBooks: "Find books",
     loadFailed: "Your collection couldn't be opened.",
+    showSpines: "Show as spines",
     showList: "Show as list",
     showCovers: "Show as covers",
+    filterAll: "All",
+    sortBy: "Sort by",
+    sort: { recent: "Recently added", title: "Title", author: "Author", rating: "Rating" },
+    sortShort: { recent: "Recent", title: "Title", author: "Author", rating: "Rating" },
+    tapAgain: "Tap again to open",
+    nothingHere: "Nothing here yet",
+    shelfLabel: (status: string, n: number) => `${status} · ${n}`,
     bookLabel: (title: string, authors: string[]) => (authors.length ? `${title}, by ${authors.join(", ")}` : title),
   },
   book: {
@@ -34,6 +42,15 @@ export const strings = {
     cancel: "Cancel",
     removeConfirm: "Remove",
     saveFailed: "Couldn't save your changes.",
+  },
+  stats: {
+    empty: "Add books to see your stats.",
+    total: "books in your collection",
+    added: "Books added",
+    ratings: "Ratings",
+    topAuthors: "Top authors",
+    unrated: (n: number) => `${n} not rated yet`,
+    books: (n: number) => (n === 1 ? "1 book" : `${n} books`),
   },
   statuses: { want_to_read: "Want to read", reading: "Reading", read: "Read" },
 } as const;

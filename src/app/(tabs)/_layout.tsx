@@ -11,7 +11,7 @@ export default function TabLayout() {
   const mode = useViewMode();
   const pathname = usePathname();
   const { books } = useCollection();
-  const wooden = mode === "covers" && pathname === "/collection" && books.length > 0;
+  const wooden = mode !== "list" && pathname === "/collection" && books.length > 0;
   const wood = () => <View style={{ flex: 1, backgroundImage: c.shelfChrome }} />;
   return (
     <Tabs
@@ -31,6 +31,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{ title: strings.tabs.search }} />
       <Tabs.Screen name="collection" options={{ title: strings.tabs.collection }} />
+      <Tabs.Screen name="stats" options={{ title: strings.tabs.stats }} />
     </Tabs>
   );
 }

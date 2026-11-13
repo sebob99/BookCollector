@@ -1,12 +1,13 @@
 import { router, Tabs } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { FlatList, Pressable, SectionList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { BookRow, Cover } from "@/components/book-row";
-import type { Book } from "@/lib/collection";
+import { CollectionBar } from "@/components/collection-bar";
 import { useCollection } from "@/lib/collection-context";
-import { setViewMode, useViewMode } from "@/lib/collection-view";
-import { chunk, columnsFor, COVER_GAP, COVER_WIDTH } from "@/lib/cover-grid";
+import { setViewMode, useViewMode, type ViewMode } from "@/lib/collection-view";
+import { columnsFor, COVER_GAP, COVER_WIDTH } from "@/lib/cover-grid";
+import { buildShelfRows, clothFor, groupByStatus, spineSize, SPINE_GAP, type ShelfRow, type SortKey, type StatusFilter } from "@/lib/shelves";
 import { strings } from "@/lib/strings";
 import { useColors } from "@/lib/theme";
 
@@ -18,6 +19,12 @@ const ROW_HEIGHT = SHELF_HEADROOM + COVER_WIDTH * 1.5 - BOOK_OVERLAP + PLANK_TOP
 
 const openBook = (volumeId: string) => router.push({ pathname: "/book/[volumeId]", params: { volumeId } });
 
+const VIEWS: { mode: ViewMode; label: string; ios: string; material: string }[] = [
+  { mode: "spines", label: strings.collection.showSpines, ios: "books.vertical", material: "library_books" },
+  { mode: "covers", label: strings.collection.showCovers, ios: "square.grid.2x2", material: "grid_view" },
+  { mode: "list", label: strings.collection.showList, ios: "list.bullet", material: "view_list" },
+];
+
 export default function CollectionScreen() {
   const c = useColors();
   const { books } = useCollection();
@@ -25,36 +32,55 @@ export default function CollectionScreen() {
   const mode = useViewMode();
 
   const [listHeight, setListHeight] = useState(0);
+  const [filter, setFilter] = useState<StatusFilter>("all");
+  const [sort, setSort] = useState<SortKey>("recent");
+  // A spine pulled halfway out; tapping it again opens the book. Any view/filter/sort change puts it back.
+  const [pulledId, setPulledId] = useState<string | null>(null);
 
   const columns = columnsFor(width);
+  const groups = useMemo(() => groupByStatus(books, filter, sort), [books, filter, sort]);
   // Pad with empty shelves so the bookcase always fills the screen, however few books there are.
   const rows = useMemo(() => {
-    const filled = chunk(books, columns);
-    while (filled.length * ROW_HEIGHT < listHeight) filled.push([]);
+    if (mode === "list") return [];
+    const filled = buildShelfRows(groups, mode, columns, width - 20, (s, n) => strings.collection.shelfLabel(strings.statuses[s], n));
+    const nothing = filled.length === 0;
+    while (filled.length * ROW_HEIGHT < listHeight || filled.length === 0) filled.push({ kind: "faces", books: [] });
+    if (nothing) filled[0].label = strings.collection.nothingHere;
     return filled;
-  }, [books, columns, listHeight]);
+  }, [groups, mode, columns, width, listHeight]);
 
-  const toggle = () => setViewMode(mode === "covers" ? "list" : "covers");
-  // The header is wooden only while shelves are showing (see the tab layout), so the icon follows it.
-  const tint = mode === "covers" && books.length > 0 ? c.onShelf : c.accent;
+  const wooden = mode !== "list";
+  // The header is wooden only while shelves are showing (see the tab layout), so the icons follow it.
+  const tint = wooden && books.length > 0 ? c.onShelf : c.accent;
 
-  const toggleLabel = mode === "covers" ? strings.collection.showList : strings.collection.showCovers;
   const header = (
     <Tabs.Screen
       options={{
         headerRight: () => (
-          <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={toggleLabel} hitSlop={8} style={styles.toggle}>
-            <SymbolView
-              name={
-                mode === "covers"
-                  ? { ios: "list.bullet", android: "view_list", web: "view_list" }
-                  : { ios: "square.grid.2x2", android: "grid_view", web: "grid_view" }
-              }
-              size={22}
-              tintColor={tint}
-              fallback={<Text style={{ color: tint }}>{toggleLabel}</Text>}
-            />
-          </Pressable>
+          <View style={styles.toggle}>
+            {VIEWS.map((v) => (
+              <Pressable
+                key={v.mode}
+                onPress={() => {
+                  setPulledId(null);
+                  setViewMode(v.mode);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={v.label}
+                accessibilityState={{ selected: v.mode === mode }}
+                hitSlop={4}
+                style={styles.toggleBtn}
+              >
+                <SymbolView
+                  name={{ ios: v.ios as never, android: v.material as never, web: v.material as never }}
+                  size={22}
+                  tintColor={tint}
+                  weight={v.mode === mode ? "bold" : "regular"}
+                  fallback={<Text style={{ color: tint, fontWeight: v.mode === mode ? "700" : "400" }}>{v.label}</Text>}
+                />
+              </Pressable>
+            ))}
+          </View>
         ),
       }}
     />
@@ -72,13 +98,28 @@ export default function CollectionScreen() {
     );
   }
 
+  const bar = (
+    <CollectionBar
+      wooden={wooden}
+      filter={filter}
+      onFilter={(f) => { setPulledId(null); setFilter(f); }}
+      sort={sort}
+      onSort={(s) => { setPulledId(null); setSort(s); }}
+    />
+  );
+
   if (mode === "list") {
     return (
-      <>
+      <View style={styles.flex}>
         {header}
-        <FlatList
-          data={books}
+        {bar}
+        <SectionList
+          sections={groups.map((g) => ({ title: strings.statuses[g.status], data: g.books }))}
           keyExtractor={(b) => b.volumeId}
+          ListEmptyComponent={<Text style={[styles.empty, { color: c.subtle }]}>{strings.collection.nothingHere}</Text>}
+          renderSectionHeader={({ section }) => (
+            <Text style={[styles.section, { color: c.subtle, backgroundColor: c.bg }]}>{section.title}</Text>
+          )}
           renderItem={({ item }) => (
             <BookRow
               {...item}
@@ -87,26 +128,92 @@ export default function CollectionScreen() {
             />
           )}
         />
-      </>
+      </View>
     );
   }
 
   return (
-    <>
+    <View style={styles.flex}>
       {header}
+      {bar}
       <FlatList
         data={rows}
         style={{ backgroundColor: c.shelfBack }}
         onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
-        keyExtractor={(row, i) => row[0]?.volumeId ?? `empty-${i}`}
-        renderItem={({ item: row }) => <CoverRow books={row} columns={columns} />}
+        keyExtractor={(row, i) => `${row.kind}-${row.books[0]?.volumeId ?? "empty"}-${i}`}
+        renderItem={({ item: row }) =>
+          row.kind === "spines" ? (
+            <SpineRow
+              row={row}
+              pulledId={pulledId}
+              onSpine={(id) => (pulledId === id ? openBook(id) : setPulledId(id))}
+            />
+          ) : (
+            <CoverRow row={row} columns={columns} />
+          )
+        }
       />
-    </>
+    </View>
   );
 }
 
-function CoverRow({ books, columns }: { books: Book[]; columns: number }) {
+function Plank({ label }: { label?: string }) {
   const c = useColors();
+  return (
+    <View>
+      <View style={[styles.plankTop, { backgroundImage: c.shelfTop }]} />
+      <View style={[styles.plankLip, { backgroundImage: c.shelfLip }]} />
+      {label ? (
+        <View style={[styles.plaque, { backgroundImage: c.brass }]}>
+          <Text style={styles.plaqueText}>{label}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function SpineRow({ row, pulledId, onSpine }: { row: ShelfRow; pulledId: string | null; onSpine: (id: string) => void }) {
+  const c = useColors();
+  const pulledHere = row.books.some((b) => b.volumeId === pulledId);
+  return (
+    <View style={{ backgroundImage: c.shelfWall }}>
+      <View style={styles.spines}>
+        {row.books.map((b) => {
+          const pulled = b.volumeId === pulledId;
+          const { w, h } = spineSize(b.volumeId);
+          return (
+            <Pressable
+              key={b.volumeId}
+              onPress={() => onSpine(b.volumeId)}
+              accessibilityRole="button"
+              accessibilityLabel={strings.collection.bookLabel(b.title, b.authors)}
+              style={[
+                styles.spine,
+                { width: pulled ? COVER_WIDTH : w, height: pulled ? COVER_WIDTH * 1.5 : h, borderRadius: pulled ? 4 : 2, backgroundColor: clothFor(b.volumeId) },
+                pulled && styles.pulled,
+              ]}
+            >
+              {pulled ? (
+                <Cover title={b.title} uri={b.coverUrl} size={COVER_WIDTH / 48} showTitle />
+              ) : (
+                <>
+                  <View style={[styles.band, { top: 9 }]} />
+                  <View style={[styles.band, { bottom: 9 }]} />
+                  <Text numberOfLines={1} style={[styles.spineTitle, { width: h - 32 }]}>{b.title}</Text>
+                </>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+      <Plank label={pulledHere ? strings.collection.tapAgain : row.label} />
+    </View>
+  );
+}
+
+function CoverRow({ row, columns }: { row: ShelfRow; columns: number }) {
+  const c = useColors();
+  const books = row.books;
   return (
     <View style={{ backgroundImage: c.shelfWall }}>
       <View style={styles.covers}>
@@ -132,15 +239,18 @@ function CoverRow({ books, columns }: { books: Book[]; columns: number }) {
           );
         })}
       </View>
-      <View style={[styles.plankTop, { backgroundImage: c.shelfTop }]} />
-      <View style={[styles.plankLip, { backgroundImage: c.shelfLip }]} />
+      <Plank label={row.label} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  toggle: { paddingHorizontal: 16 },
+  flex: { flex: 1 },
+  toggle: { flexDirection: "row", paddingRight: 8 },
+  toggleBtn: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  empty: { textAlign: "center", marginTop: 32 },
+  section: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6, fontSize: 13, textTransform: "uppercase" },
   // Negative margin + zIndex: books stand on the plank's top face rather than behind its back edge.
   covers: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: COVER_GAP / 2, paddingTop: SHELF_HEADROOM, height: SHELF_HEADROOM + COVER_WIDTH * 1.5, marginBottom: -BOOK_OVERLAP, zIndex: 1 },
   // Fixed height so an empty slot is as tall as a book and its lamp sits under the shelf above.
@@ -162,6 +272,14 @@ const styles = StyleSheet.create({
     position: "absolute", top: 0, bottom: 0, left: 0, right: 0, borderRadius: 4,
     backgroundImage: "linear-gradient(to bottom, rgba(255, 236, 196, 0.28) 0%, rgba(255, 236, 196, 0) 55%)",
   },
+  spines: { flexDirection: "row", alignItems: "flex-end", gap: SPINE_GAP, paddingHorizontal: 10, paddingTop: SHELF_HEADROOM, height: SHELF_HEADROOM + COVER_WIDTH * 1.5, marginBottom: -BOOK_OVERLAP, zIndex: 1 },
+  spine: { overflow: "hidden", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 3px rgba(0, 0, 0, 0.4)" },
+  pulled: { boxShadow: "0 0 22px rgba(255, 214, 140, 0.55), 0 3px 6px rgba(0, 0, 0, 0.5)" },
+  band: { position: "absolute", left: 0, right: 0, height: 2, backgroundColor: "rgba(230, 201, 135, 0.7)" },
+  // Rotated so the title reads bottom-to-top along the spine, like a real one.
+  spineTitle: { textAlign: "center", color: "#f6e7d4", fontSize: 11, fontWeight: "700", transform: [{ rotate: "90deg" }] },
+  plaque: { position: "absolute", left: 14, top: 2, height: 18, paddingHorizontal: 8, borderRadius: 2, justifyContent: "center", boxShadow: "0 1px 2px rgba(0, 0, 0, 0.5)" },
+  plaqueText: { color: "#2a1a0c", fontSize: 10, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase" },
   plankTop: { height: PLANK_TOP },
   plankLip: { height: PLANK_LIP },
 });
