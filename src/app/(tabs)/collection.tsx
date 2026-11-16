@@ -1,6 +1,6 @@
 import { router, Tabs, useFocusEffect } from "expo-router";
 import { SymbolView, type AndroidSymbol, type SFSymbol } from "expo-symbols";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, SectionList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { BookRow } from "@/components/book-row";
 import { CollectionBar } from "@/components/collection-bar";
@@ -29,9 +29,18 @@ export default function CollectionScreen() {
   const [listHeight, setListHeight] = useState(0);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
-  // A spine pulled halfway out; tapping it again opens the book. It goes back on the shelf on a background tap, any view/filter/sort change, or when the screen loses focus (tab switch, book detail).
+  // A spine pulled halfway out; tapping it again opens the book. It goes back on the shelf on a background tap, any view/filter/sort change, or a tab switch. Opening its book keeps it pulled, so it is still out on return; a removed book is no longer pulled.
   const [pulledId, setPulledId] = useState<string | null>(null);
-  useFocusEffect(useCallback(() => () => setPulledId(null), []));
+  const openingBook = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      openingBook.current = false;
+      return () => {
+        if (!openingBook.current) setPulledId(null);
+      };
+    }, []),
+  );
+  const stillPulled = books.some((b) => b.volumeId === pulledId) ? pulledId : null;
 
   const columns = columnsFor(width);
   const groups = useMemo(() => groupByStatus(books, filter, sort), [books, filter, sort]);
@@ -144,8 +153,12 @@ export default function CollectionScreen() {
             {row.kind === "spines" ? (
               <SpineRow
                 row={row}
-                pulledId={pulledId}
-                onSpine={(id) => (pulledId === id ? openBook(id) : setPulledId(id))}
+                pulledId={stillPulled}
+                onSpine={(id) => {
+                  if (pulledId !== id) return setPulledId(id);
+                  openingBook.current = true;
+                  openBook(id);
+                }}
               />
             ) : (
               <CoverRow row={row} columns={columns} onBook={openBook} onLabel={empty && index === 0 ? findBooks : undefined} />
