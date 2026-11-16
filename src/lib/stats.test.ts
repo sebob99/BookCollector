@@ -1,5 +1,5 @@
 import type { Book } from "./collection";
-import { collectionStats } from "./stats";
+import { barHeight, collectionStats } from "./stats";
 
 const DAY = 864e5;
 const NOW = new Date(2026, 10, 13).getTime();
@@ -24,5 +24,16 @@ describe("collectionStats", () => {
     expect(s.months).toHaveLength(6);
     expect(s.months[5].n).toBe(1);
     expect(s.months.reduce((t, m) => t + m.n, 0)).toBe(2); // the 400-day-old book is outside the window
+  });
+});
+
+describe("barHeight", () => {
+  it("keeps a stub for empty months and fills the area for the max", () => {
+    expect(barHeight(0, 1, 100)).toBe(4);
+    expect(barHeight(3, 3, 100)).toBe(100);
+    expect(barHeight(0, 0, 100)).toBe(4); // no books in the window
+  });
+  it("renders an all-empty window", () => {
+    expect(collectionStats([book("c", { addedAt: NOW - 400 * DAY })], NOW).months.every((m) => m.n === 0)).toBe(true);
   });
 });

@@ -26,3 +26,7 @@ export function collectionStats(books: readonly Book[], now: number) {
       .map(([name, count]) => ({ name, count })),
   };
 }
+
+const STUB = 4;
+/** Bar height within `area` px; empty months keep a small stub so the row never collapses. */
+export const barHeight = (n: number, max: number, area: number) => STUB + Math.round((max > 0 ? n / max : 0) * (area - STUB));

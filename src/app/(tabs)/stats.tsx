@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { Plank } from "@/components/shelf";
 import { useCollection } from "@/lib/collection-context";
 import { clothFor } from "@/lib/cloth";
-import { collectionStats } from "@/lib/stats";
+import { barHeight, collectionStats } from "@/lib/stats";
 import { strings } from "@/lib/strings";
 import { useColors } from "@/lib/theme";
 
-const BAR_MAX = 86;
+const BAR_AREA = 124; // fixed per the design; the plank below never moves
+const COUNT_LABEL = 20; // count text above each bar
 
 export default function StatsScreen() {
   const c = useColors();
@@ -19,7 +19,7 @@ export default function StatsScreen() {
     return <Text style={[styles.empty, { color: c.subtle }]}>{strings.stats.empty}</Text>;
   }
 
-  const maxMonth = Math.max(1, ...s.months.map((m) => m.n));
+  const maxMonth = Math.max(0, ...s.months.map((m) => m.n));
   const maxRating = Math.max(1, ...s.ratings.map((r) => r.n));
   const heading = (t: string) => <Text style={[styles.heading, { color: c.subtle }]}>{t}</Text>;
 
@@ -40,15 +40,14 @@ export default function StatsScreen() {
       </View>
 
       {heading(strings.stats.added)}
-      <View style={styles.months}>
+      <View style={[styles.months, { height: BAR_AREA }]}>
         {s.months.map((m, i) => (
           <View key={i} style={styles.month}>
             <Text style={{ color: c.text, fontSize: 13, fontWeight: "600" }}>{m.n}</Text>
-            <View style={{ width: "100%", height: m.n ? Math.round((m.n / maxMonth) * BAR_MAX) + 6 : 0, backgroundColor: clothFor(`month-${i}`, 40), borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
+            <View style={{ width: "100%", height: barHeight(m.n, maxMonth, BAR_AREA - COUNT_LABEL), backgroundColor: clothFor(`month-${i}`, 40), borderTopLeftRadius: 3, borderTopRightRadius: 3 }} />
           </View>
         ))}
       </View>
-      <Plank thin />
       <View style={styles.months}>
         {s.months.map((m, i) => (
           <Text key={i} style={[styles.monthLabel, { color: c.subtle }]}>{m.label}</Text>
@@ -87,7 +86,7 @@ const styles = StyleSheet.create({
   count: { flex: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
   countN: { fontSize: 28, fontWeight: "700" },
   heading: { marginTop: 20, fontSize: 13, textTransform: "uppercase" },
-  months: { flexDirection: "row", alignItems: "flex-end", gap: 12, paddingHorizontal: 10, height: undefined },
+  months: { flexDirection: "row", alignItems: "flex-end", gap: 12, paddingHorizontal: 10 },
   month: { flex: 1, alignItems: "center", gap: 4 },
   monthLabel: { flex: 1, textAlign: "center", fontSize: 13 },
   ratingRow: { flexDirection: "row", alignItems: "center", gap: 10 },

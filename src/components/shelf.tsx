@@ -12,13 +12,13 @@ const PLANK_TOP = 12;
 const PLANK_LIP = 10;
 export const ROW_HEIGHT = SHELF_HEADROOM + COVER_WIDTH * 1.5 - BOOK_OVERLAP + PLANK_TOP + PLANK_LIP;
 
-/** The wooden shelf board. `thin` is the slim variant the Stats screen stands its bars on. */
-export function Plank({ label, thin, onLabel }: { label?: string; thin?: boolean; onLabel?: () => void }) {
+/** The wooden shelf board. */
+export function Plank({ label, onLabel }: { label?: string; onLabel?: () => void }) {
   const c = useColors();
   return (
-    <View style={thin && styles.thinGap}>
-      <View style={[styles.plankTop, thin && styles.thinTop, { backgroundImage: c.shelfTop }]} />
-      <View style={[styles.plankLip, thin && styles.thinLip, { backgroundImage: c.shelfLip }]} />
+    <View>
+      <View style={[styles.plankTop, { backgroundImage: c.shelfTop }]} />
+      <View style={[styles.plankLip, { backgroundImage: c.shelfLip }]} />
       {label ? (
         <Pressable disabled={!onLabel} onPress={onLabel} accessibilityRole={onLabel ? "button" : undefined} style={[styles.plaque, { backgroundImage: c.brass }]}>
           <Text style={styles.plaqueText}>{label}</Text>
@@ -133,7 +133,4 @@ const styles = StyleSheet.create({
   plankTop: { height: PLANK_TOP },
   plankLip: { height: PLANK_LIP },
   // Matches the 8px list gap the Stats screen had between the two plank parts before they shared a wrapper.
-  thinGap: { gap: 8 },
-  thinTop: { height: 7, borderRadius: 2 },
-  thinLip: { height: 5, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
 });
