@@ -1,6 +1,6 @@
-import { router, Tabs } from "expo-router";
+import { router, Tabs, useFocusEffect } from "expo-router";
 import { SymbolView, type AndroidSymbol, type SFSymbol } from "expo-symbols";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, SectionList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { BookRow } from "@/components/book-row";
 import { CollectionBar } from "@/components/collection-bar";
@@ -29,8 +29,9 @@ export default function CollectionScreen() {
   const [listHeight, setListHeight] = useState(0);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
-  // A spine pulled halfway out; tapping it again opens the book. Any view/filter/sort change puts it back.
+  // A spine pulled halfway out; tapping it again opens the book. It goes back on the shelf on a background tap, any view/filter/sort change, or when the screen loses focus (tab switch, book detail).
   const [pulledId, setPulledId] = useState<string | null>(null);
+  useFocusEffect(useCallback(() => () => setPulledId(null), []));
 
   const columns = columnsFor(width);
   const groups = useMemo(() => groupByStatus(books, filter, sort), [books, filter, sort]);
@@ -138,17 +139,19 @@ export default function CollectionScreen() {
         style={{ backgroundColor: c.shelfBack }}
         onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
         keyExtractor={(row, i) => `${row.kind}-${row.books[0]?.volumeId ?? "empty"}-${i}`}
-        renderItem={({ item: row, index }) =>
-          row.kind === "spines" ? (
-            <SpineRow
-              row={row}
-              pulledId={pulledId}
-              onSpine={(id) => (pulledId === id ? openBook(id) : setPulledId(id))}
-            />
-          ) : (
-            <CoverRow row={row} columns={columns} onBook={openBook} onLabel={empty && index === 0 ? findBooks : undefined} />
-          )
-        }
+        renderItem={({ item: row, index }) => (
+          <Pressable accessible={false} onPress={() => setPulledId(null)}>
+            {row.kind === "spines" ? (
+              <SpineRow
+                row={row}
+                pulledId={pulledId}
+                onSpine={(id) => (pulledId === id ? openBook(id) : setPulledId(id))}
+              />
+            ) : (
+              <CoverRow row={row} columns={columns} onBook={openBook} onLabel={empty && index === 0 ? findBooks : undefined} />
+            )}
+          </Pressable>
+        )}
       />
     </View>
   );
