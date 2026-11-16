@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { Cover } from "@/components/book-row";
 import { COVER_GAP, COVER_WIDTH } from "@/lib/cover-grid";
 import { clothFor } from "@/lib/cloth";
@@ -6,6 +8,8 @@ import { spineSize, SPINE_GAP, type ShelfRow } from "@/lib/shelves";
 import { strings } from "@/lib/strings";
 import { useColors } from "@/lib/theme";
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const PULL_MS = 300;
 const SHELF_HEADROOM = 28;
 const BOOK_OVERLAP = 5;
 const PLANK_TOP = 12;
@@ -28,6 +32,13 @@ export function Plank({ label, onLabel }: { label?: string; onLabel?: () => void
   );
 }
 
+/** Mounts the cover on first pull and keeps it, so the fade back to the spine still shows it without loading every cover up front. */
+function PulledCover({ pulled, title, uri }: { pulled: boolean; title: string; uri: string | null }) {
+  const [seen, setSeen] = useState(pulled);
+  if (pulled && !seen) setSeen(true);
+  return seen ? <Cover title={title} uri={uri} size={COVER_WIDTH / 48} showTitle /> : null;
+}
+
 export function SpineRow({ row, pulledId, onSpine, onLabel }: { row: ShelfRow; pulledId: string | null; onSpine: (id: string) => void; onLabel?: () => void }) {
   const c = useColors();
   const pulledHere = row.books.some((b) => b.volumeId === pulledId);
@@ -38,7 +49,7 @@ export function SpineRow({ row, pulledId, onSpine, onLabel }: { row: ShelfRow; p
           const pulled = b.volumeId === pulledId;
           const { w, h } = spineSize(b.volumeId);
           return (
-            <Pressable
+            <AnimatedPressable
               key={b.volumeId}
               onPress={() => onSpine(b.volumeId)}
               accessibilityRole="button"
@@ -47,18 +58,20 @@ export function SpineRow({ row, pulledId, onSpine, onLabel }: { row: ShelfRow; p
                 styles.spine,
                 { width: pulled ? COVER_WIDTH : w, height: pulled ? COVER_WIDTH * 1.5 : h, borderRadius: pulled ? 4 : 2, backgroundColor: clothFor(b.volumeId) },
                 pulled && styles.pulled,
+                { transitionProperty: ["width", "height", "borderRadius"], transitionDuration: PULL_MS },
               ]}
             >
-              {pulled ? (
-                <Cover title={b.title} uri={b.coverUrl} size={COVER_WIDTH / 48} showTitle />
-              ) : (
-                <>
-                  <View style={[styles.band, { top: 9 }]} />
-                  <View style={[styles.band, { bottom: 9 }]} />
-                  <Text numberOfLines={1} style={[styles.spineTitle, { width: h - 32 }]}>{b.title}</Text>
-                </>
-              )}
-            </Pressable>
+              {/* Both faces stay mounted and cross-fade, so the swap is not instant. */}
+              <Animated.View pointerEvents="none" style={[styles.face, { opacity: pulled ? 0 : 1, transitionProperty: "opacity", transitionDuration: PULL_MS }]}>
+                <View style={[styles.band, { top: 9 }]} />
+                <View style={[styles.band, { bottom: 9 }]} />
+                <Text numberOfLines={1} style={[styles.spineTitle, { width: h - 32 }]}>{b.title}</Text>
+                <View style={styles.shade} />
+              </Animated.View>
+              <Animated.View pointerEvents="none" style={[styles.cover, { opacity: pulled ? 1 : 0, transitionProperty: "opacity", transitionDuration: PULL_MS }]}>
+                <PulledCover pulled={pulled} title={b.title} uri={b.coverUrl} />
+              </Animated.View>
+            </AnimatedPressable>
           );
         })}
       </View>
@@ -125,6 +138,13 @@ const styles = StyleSheet.create({
   spines: { flexDirection: "row", alignItems: "flex-end", gap: SPINE_GAP, paddingHorizontal: 10, paddingTop: SHELF_HEADROOM, height: SHELF_HEADROOM + COVER_WIDTH * 1.5, marginBottom: -BOOK_OVERLAP, zIndex: 1 },
   spine: { overflow: "hidden", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 3px rgba(0, 0, 0, 0.4)" },
   pulled: { boxShadow: "0 0 22px rgba(255, 214, 140, 0.55), 0 3px 6px rgba(0, 0, 0, 0.5)" },
+  face: { position: "absolute", top: 0, bottom: 0, left: 0, right: 0, alignItems: "center", justifyContent: "center" },
+  cover: { position: "absolute", top: 0, left: 0, width: COVER_WIDTH, height: COVER_WIDTH * 1.5 },
+  // Rounded-spine look: dark at both edges, a light streak left of centre.
+  shade: {
+    position: "absolute", top: 0, bottom: 0, left: 0, right: 0,
+    backgroundImage: "linear-gradient(to right, rgba(0, 0, 0, 0.45) 0%, rgba(255, 255, 255, 0.14) 30%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.4) 100%)",
+  },
   band: { position: "absolute", left: 0, right: 0, height: 2, backgroundColor: "rgba(230, 201, 135, 0.7)" },
   // A 90° clockwise rotation, so the title reads top-to-bottom along the spine.
   spineTitle: { textAlign: "center", color: "#f6e7d4", fontSize: 11, fontWeight: "700", transform: [{ rotate: "90deg" }] },
