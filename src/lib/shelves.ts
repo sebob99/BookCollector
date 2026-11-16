@@ -1,6 +1,7 @@
 import { hash } from "./cloth";
 import { STATUS_ORDER, type Book, type ReadingStatus } from "./collection";
 import { chunk } from "./cover-grid";
+import type { ViewMode } from "./collection-view";
 
 export type SortKey = "recent" | "title" | "author" | "rating";
 export type StatusFilter = "all" | ReadingStatus;
@@ -75,3 +76,11 @@ export function buildShelfRows(
   }
   return rows;
 }
+
+/** The saved view choice if it is valid, else spines (what new users land on). */
+export function parseViewMode(saved: string | null): ViewMode {
+  return saved === "spines" || saved === "covers" || saved === "list" ? saved : "spines";
+}
+
+/** Header and tab bar turn to wood whenever the Collection tab shows shelves, empty or not. */
+export const isWooden = (mode: ViewMode, pathname: string) => mode !== "list" && pathname === "/collection";

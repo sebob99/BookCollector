@@ -1,5 +1,5 @@
 import type { Book } from "./collection";
-import { buildShelfRows, groupByStatus, packSpines, sortBooks, spineSize } from "./shelves";
+import { buildShelfRows, isWooden, parseViewMode, groupByStatus, packSpines, sortBooks, spineSize } from "./shelves";
 
 const NOW = new Date(2026, 10, 13).getTime();
 const book = (id: string, over: Partial<Book> = {}): Book => ({
@@ -49,5 +49,27 @@ describe("buildShelfRows", () => {
     const books = [book("a", { status: "reading" }), book("b"), book("c")];
     const rows = buildShelfRows(groupByStatus(books, "all", "title"), "spines", 3, 300, (s, n) => `${s} ${n}`);
     expect(rows.map((r) => [r.kind, r.label])).toEqual([["faces", "reading 1"], ["spines", "want_to_read 2"]]);
+  });
+});
+
+describe("parseViewMode", () => {
+  it("defaults to spines when nothing valid is saved", () => {
+    expect(parseViewMode(null)).toBe("spines");
+    expect(parseViewMode("bogus")).toBe("spines");
+  });
+  it("lets a saved choice win", () => {
+    expect(parseViewMode("covers")).toBe("covers");
+    expect(parseViewMode("list")).toBe("list");
+  });
+});
+
+describe("isWooden", () => {
+  it("is wooden on the Collection tab for shelf views, even when empty", () => {
+    expect(isWooden("spines", "/collection")).toBe(true);
+    expect(isWooden("covers", "/collection")).toBe(true);
+  });
+  it("is not wooden for list view or other tabs", () => {
+    expect(isWooden("list", "/collection")).toBe(false);
+    expect(isWooden("spines", "/stats")).toBe(false);
   });
 });

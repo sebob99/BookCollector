@@ -40,13 +40,13 @@ export default function CollectionScreen() {
     const filled = buildShelfRows(groups, mode, columns, width - 20, (s, n) => strings.collection.shelfLabel(strings.statuses[s], n));
     const nothing = filled.length === 0;
     while (filled.length * ROW_HEIGHT < listHeight || filled.length === 0) filled.push({ kind: "faces", books: [] });
-    if (nothing) filled[0].label = strings.collection.nothingHere;
+    if (nothing) filled[0].label = books.length === 0 ? `${strings.collection.empty} ${strings.collection.findBooks}` : strings.collection.nothingHere;
     return filled;
-  }, [groups, mode, columns, width, listHeight]);
+  }, [groups, books.length, mode, columns, width, listHeight]);
 
   const wooden = mode !== "list";
   // The header is wooden only while shelves are showing (see the tab layout), so the icons follow it.
-  const tint = wooden && books.length > 0 ? c.onShelf : c.accent;
+  const tint = wooden ? c.onShelf : c.accent;
 
   const header = (
     <Tabs.Screen
@@ -81,7 +81,7 @@ export default function CollectionScreen() {
     />
   );
 
-  if (books.length === 0) {
+  if (books.length === 0 && mode === "list") {
     return (
       <View style={styles.center}>
         {header}
@@ -93,7 +93,9 @@ export default function CollectionScreen() {
     );
   }
 
-  const bar = (
+  const empty = books.length === 0;
+  const findBooks = () => router.navigate("/");
+  const bar = empty ? null : (
     <CollectionBar
       wooden={wooden}
       filter={filter}
@@ -136,7 +138,7 @@ export default function CollectionScreen() {
         style={{ backgroundColor: c.shelfBack }}
         onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
         keyExtractor={(row, i) => `${row.kind}-${row.books[0]?.volumeId ?? "empty"}-${i}`}
-        renderItem={({ item: row }) =>
+        renderItem={({ item: row, index }) =>
           row.kind === "spines" ? (
             <SpineRow
               row={row}
@@ -144,7 +146,7 @@ export default function CollectionScreen() {
               onSpine={(id) => (pulledId === id ? openBook(id) : setPulledId(id))}
             />
           ) : (
-            <CoverRow row={row} columns={columns} onBook={openBook} />
+            <CoverRow row={row} columns={columns} onBook={openBook} onLabel={empty && index === 0 ? findBooks : undefined} />
           )
         }
       />

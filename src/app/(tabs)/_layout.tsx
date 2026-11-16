@@ -1,7 +1,7 @@
 import { Tabs, usePathname } from "expo-router";
 import { View } from "react-native";
-import { useCollection } from "@/lib/collection-context";
 import { useViewMode } from "@/lib/collection-view";
+import { isWooden } from "@/lib/shelves";
 import { strings } from "@/lib/strings";
 import { useColors } from "@/lib/theme";
 
@@ -10,8 +10,7 @@ export default function TabLayout() {
   // While the Collection shows its shelves, the header and tab bar become part of the bookcase.
   const mode = useViewMode();
   const pathname = usePathname();
-  const { books } = useCollection();
-  const wooden = mode !== "list" && pathname === "/collection" && books.length > 0;
+  const wooden = isWooden(mode, pathname);
   const wood = () => <View style={{ flex: 1, backgroundImage: c.shelfChrome }} />;
   return (
     <Tabs

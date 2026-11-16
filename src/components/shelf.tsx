@@ -13,22 +13,22 @@ const PLANK_LIP = 10;
 export const ROW_HEIGHT = SHELF_HEADROOM + COVER_WIDTH * 1.5 - BOOK_OVERLAP + PLANK_TOP + PLANK_LIP;
 
 /** The wooden shelf board. `thin` is the slim variant the Stats screen stands its bars on. */
-export function Plank({ label, thin }: { label?: string; thin?: boolean }) {
+export function Plank({ label, thin, onLabel }: { label?: string; thin?: boolean; onLabel?: () => void }) {
   const c = useColors();
   return (
     <View style={thin && styles.thinGap}>
       <View style={[styles.plankTop, thin && styles.thinTop, { backgroundImage: c.shelfTop }]} />
       <View style={[styles.plankLip, thin && styles.thinLip, { backgroundImage: c.shelfLip }]} />
       {label ? (
-        <View style={[styles.plaque, { backgroundImage: c.brass }]}>
+        <Pressable disabled={!onLabel} onPress={onLabel} accessibilityRole={onLabel ? "button" : undefined} style={[styles.plaque, { backgroundImage: c.brass }]}>
           <Text style={styles.plaqueText}>{label}</Text>
-        </View>
+        </Pressable>
       ) : null}
     </View>
   );
 }
 
-export function SpineRow({ row, pulledId, onSpine }: { row: ShelfRow; pulledId: string | null; onSpine: (id: string) => void }) {
+export function SpineRow({ row, pulledId, onSpine, onLabel }: { row: ShelfRow; pulledId: string | null; onSpine: (id: string) => void; onLabel?: () => void }) {
   const c = useColors();
   const pulledHere = row.books.some((b) => b.volumeId === pulledId);
   return (
@@ -62,12 +62,12 @@ export function SpineRow({ row, pulledId, onSpine }: { row: ShelfRow; pulledId: 
           );
         })}
       </View>
-      <Plank label={pulledHere ? strings.collection.tapAgain : row.label} />
+      <Plank label={pulledHere ? strings.collection.tapAgain : row.label} onLabel={onLabel} />
     </View>
   );
 }
 
-export function CoverRow({ row, columns, onBook }: { row: ShelfRow; columns: number; onBook: (id: string) => void }) {
+export function CoverRow({ row, columns, onBook, onLabel }: { row: ShelfRow; columns: number; onBook: (id: string) => void; onLabel?: () => void }) {
   const c = useColors();
   const books = row.books;
   return (
@@ -95,7 +95,7 @@ export function CoverRow({ row, columns, onBook }: { row: ShelfRow; columns: num
           );
         })}
       </View>
-      <Plank label={row.label} />
+      <Plank label={row.label} onLabel={onLabel} />
     </View>
   );
 }
