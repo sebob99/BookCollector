@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SORT_KEYS, STATUS_ORDER, type SortKey, type StatusFilter } from "@/lib/shelves";
+import { STATUS_ORDER } from "@/lib/collection";
+import { SORT_KEYS, type SortKey, type StatusFilter } from "@/lib/shelves";
 import { strings } from "@/lib/strings";
 import { useColors } from "@/lib/theme";
 

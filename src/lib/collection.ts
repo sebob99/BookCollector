@@ -1,6 +1,8 @@
 import type { SearchResult } from "./parse-volumes";
 
 export type ReadingStatus = "want_to_read" | "reading" | "read";
+/** Display order of the statuses. */
+export const STATUS_ORDER: readonly ReadingStatus[] = ["reading", "want_to_read", "read"];
 
 export type Book = SearchResult & {
   status: ReadingStatus;

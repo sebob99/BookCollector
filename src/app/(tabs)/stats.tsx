@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Plank } from "@/components/shelf";
 import { useCollection } from "@/lib/collection-context";
-import { clothFor, collectionStats } from "@/lib/shelves";
+import { clothFor } from "@/lib/cloth";
+import { collectionStats } from "@/lib/stats";
 import { strings } from "@/lib/strings";
 import { useColors } from "@/lib/theme";
 
@@ -46,8 +48,7 @@ export default function StatsScreen() {
           </View>
         ))}
       </View>
-      <View style={[styles.plankTop, { backgroundImage: c.shelfTop }]} />
-      <View style={[styles.plankLip, { backgroundImage: c.shelfLip }]} />
+      <Plank thin />
       <View style={styles.months}>
         {s.months.map((m, i) => (
           <Text key={i} style={[styles.monthLabel, { color: c.subtle }]}>{m.label}</Text>
@@ -89,8 +90,6 @@ const styles = StyleSheet.create({
   months: { flexDirection: "row", alignItems: "flex-end", gap: 12, paddingHorizontal: 10, height: undefined },
   month: { flex: 1, alignItems: "center", gap: 4 },
   monthLabel: { flex: 1, textAlign: "center", fontSize: 13 },
-  plankTop: { height: 7, borderRadius: 2 },
-  plankLip: { height: 5, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
   ratingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   stars: { width: 78, fontSize: 15, letterSpacing: 1 },
   track: { flex: 1, height: 10, borderRadius: 5, overflow: "hidden" },

@@ -1,10 +1,10 @@
-import type { Book, ReadingStatus } from "./collection";
+import { hash } from "./cloth";
+import { STATUS_ORDER, type Book, type ReadingStatus } from "./collection";
 import { chunk } from "./cover-grid";
 
 export type SortKey = "recent" | "title" | "author" | "rating";
 export type StatusFilter = "all" | ReadingStatus;
 export const SORT_KEYS: readonly SortKey[] = ["recent", "title", "author", "rating"];
-export const STATUS_ORDER: readonly ReadingStatus[] = ["reading", "want_to_read", "read"];
 export const SPINE_GAP = 2;
 
 const bareTitle = (t: string) => t.replace(/^(the|a) /i, "");
@@ -29,14 +29,6 @@ export function groupByStatus(books: readonly Book[], filter: StatusFilter, sort
     .filter((g) => g.books.length > 0);
 }
 
-// Spine look is derived from the volume id so a book keeps its size and colour on every launch.
-const HUES = [25, 255, 140, 310, 60, 195, 90];
-function hash(s: string) {
-  let h = 0;
-  for (const ch of s) h = (h * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
-  return h;
-}
-export const clothFor = (volumeId: string, lightness = 24) => `hsl(${HUES[hash(volumeId) % 7]}, 40%, ${lightness}%)`;
 export function spineSize(volumeId: string) {
   const h = hash(volumeId);
   return { w: 24 + (h % 5) * 3, h: 124 + (Math.floor(h / 5) % 4) * 8 };
@@ -82,31 +74,4 @@ export function buildShelfRows(
     rows[start].label = label(g.status, g.books.length);
   }
   return rows;
-}
-
-export function collectionStats(books: readonly Book[], now: number) {
-  const d = new Date(now);
-  const months = Array.from({ length: 6 }, (_, k) => {
-    const i = 5 - k;
-    const from = new Date(d.getFullYear(), d.getMonth() - i, 1);
-    const to = new Date(d.getFullYear(), d.getMonth() - i + 1, 1);
-    return {
-      label: from.toLocaleString(undefined, { month: "short" }),
-      n: books.filter((b) => b.addedAt >= from.getTime() && b.addedAt < to.getTime()).length,
-    };
-  });
-  const ratings = [5, 4, 3, 2, 1].map((stars) => ({ stars, n: books.filter((b) => b.rating === stars).length }));
-  const byAuthor = new Map<string, number>();
-  for (const b of books) for (const a of b.authors) byAuthor.set(a, (byAuthor.get(a) ?? 0) + 1);
-  return {
-    total: books.length,
-    counts: STATUS_ORDER.map((status) => ({ status, n: books.filter((b) => b.status === status).length })),
-    months,
-    ratings,
-    unrated: books.filter((b) => !b.rating).length,
-    topAuthors: [...byAuthor]
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count })),
-  };
 }
