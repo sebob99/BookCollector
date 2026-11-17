@@ -2,6 +2,7 @@ import { router, Tabs, useFocusEffect } from "expo-router";
 import { SymbolView, type AndroidSymbol, type SFSymbol } from "expo-symbols";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, SectionList, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BookRow } from "@/components/book-row";
 import { CollectionBar } from "@/components/collection-bar";
 import { CoverRow, ROW_HEIGHT, SpineRow } from "@/components/shelf";
@@ -25,6 +26,7 @@ export default function CollectionScreen() {
   const { books } = useCollection();
   const { width } = useWindowDimensions();
   const mode = useViewMode();
+  const insets = useSafeAreaInsets();
 
   const [listHeight, setListHeight] = useState(0);
   const [filter, setFilter] = useState<StatusFilter>("all");
@@ -58,33 +60,58 @@ export default function CollectionScreen() {
   // The header is wooden only while shelves are showing (see the tab layout), so the icons follow it.
   const tint = wooden ? c.onShelf : c.accent;
 
+  const empty = books.length === 0;
+  const bar = empty ? null : (
+    <CollectionBar
+      wooden={wooden}
+      filter={filter}
+      onFilter={(f) => { setPulledId(null); setFilter(f); }}
+      sort={sort}
+      onSort={(s) => { setPulledId(null); setSort(s); }}
+    />
+  );
+
   const header = (
     <Tabs.Screen
       options={{
-        headerRight: () => (
-          <View style={styles.toggle}>
-            {VIEWS.map((v) => (
-              <Pressable
-                key={v.mode}
-                onPress={() => {
-                  setPulledId(null);
-                  setViewMode(v.mode);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={v.label}
-                accessibilityState={{ selected: v.mode === mode }}
-                hitSlop={4}
-                style={styles.toggleBtn}
-              >
-                <SymbolView
-                  name={{ ios: v.ios, android: v.material, web: v.material }}
-                  size={22}
-                  tintColor={tint}
-                  weight={v.mode === mode ? "bold" : "regular"}
-                  fallback={<Text style={{ color: tint, fontWeight: v.mode === mode ? "700" : "400" }}>{v.label}</Text>}
-                />
-              </Pressable>
-            ))}
+        // One header: wood (or plain) background, title + view toggle, then chips and sort with no seam.
+        header: () => (
+          <View
+            style={[
+              { paddingTop: insets.top },
+              wooden ? { backgroundImage: c.shelfChrome } : { backgroundColor: c.bg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border },
+            ]}
+          >
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, { color: wooden ? c.onShelf : c.text }]} accessibilityRole="header">
+                {strings.tabs.collection}
+              </Text>
+              <View style={styles.toggle}>
+                {VIEWS.map((v) => (
+                  <Pressable
+                    key={v.mode}
+                    onPress={() => {
+                      setPulledId(null);
+                      setViewMode(v.mode);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={v.label}
+                    accessibilityState={{ selected: v.mode === mode }}
+                    hitSlop={4}
+                    style={styles.toggleBtn}
+                  >
+                    <SymbolView
+                      name={{ ios: v.ios, android: v.material, web: v.material }}
+                      size={22}
+                      tintColor={tint}
+                      weight={v.mode === mode ? "bold" : "regular"}
+                      fallback={<Text style={{ color: tint, fontWeight: v.mode === mode ? "700" : "400" }}>{v.label}</Text>}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            {bar}
           </View>
         ),
       }}
@@ -103,23 +130,12 @@ export default function CollectionScreen() {
     );
   }
 
-  const empty = books.length === 0;
   const findBooks = () => router.navigate("/");
-  const bar = empty ? null : (
-    <CollectionBar
-      wooden={wooden}
-      filter={filter}
-      onFilter={(f) => { setPulledId(null); setFilter(f); }}
-      sort={sort}
-      onSort={(s) => { setPulledId(null); setSort(s); }}
-    />
-  );
 
   if (mode === "list") {
     return (
       <View style={styles.flex}>
         {header}
-        {bar}
         <SectionList
           sections={groups.map((g) => ({ title: strings.statuses[g.status], data: g.books }))}
           keyExtractor={(b) => b.volumeId}
@@ -142,7 +158,6 @@ export default function CollectionScreen() {
   return (
     <View style={styles.flex}>
       {header}
-      {bar}
       <FlatList
         data={rows}
         style={{ backgroundColor: c.shelfBack }}
@@ -173,6 +188,8 @@ export default function CollectionScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   flex: { flex: 1 },
+  titleRow: { height: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingLeft: 16 },
+  title: { fontSize: 17, fontWeight: "600" },
   toggle: { flexDirection: "row", paddingRight: 8 },
   toggleBtn: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
   empty: { textAlign: "center", marginTop: 32 },
