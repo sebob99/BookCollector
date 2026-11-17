@@ -83,4 +83,4 @@ export function parseViewMode(saved: string | null): ViewMode {
 }
 
 /** Header and tab bar turn to wood whenever the Collection tab shows shelves, empty or not. */
-export const isWooden = (mode: ViewMode, pathname: string) => mode !== "list" && pathname === "/collection";
+export const isWooden = (mode: ViewMode, pathname: string) => mode !== "list" && pathname === "/";

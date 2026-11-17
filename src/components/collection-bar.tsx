@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, Vi
 import { STATUS_ORDER } from "@/lib/collection";
 import { SORT_KEYS, type SortKey, type StatusFilter } from "@/lib/shelves";
 import { strings } from "@/lib/strings";
-import { useColors } from "@/lib/theme";
+import { chromeColors, useColors } from "@/lib/theme";
 
 type Props = {
   wooden: boolean;
@@ -24,9 +24,8 @@ export function CollectionBar({ wooden, filter, onFilter, sort, onSort }: Props)
   const openMenu = () =>
     sortBtn.current?.measureInWindow((x, y, w, h) => setMenuPos({ top: y + h, right: Math.max(8, windowWidth - x - w) }));
   const close = () => setMenuPos(null);
-  const ink = wooden ? c.onShelf : c.text;
+  const { ink, chipBg, chipLine, onInk } = chromeColors(c, wooden);
   const chipOn = wooden ? "#e6c987" : c.accent;
-  const onChip = wooden ? "#2a1a0c" : c.onAccent;
 
   return (
     <View style={styles.bar}>
@@ -42,12 +41,12 @@ export function CollectionBar({ wooden, filter, onFilter, sort, onSort }: Props)
               style={[
                 styles.chip,
                 {
-                  backgroundColor: on ? chipOn : wooden ? "rgba(0,0,0,0.3)" : c.card,
-                  borderColor: on ? "transparent" : wooden ? "rgba(230,201,135,0.5)" : c.border,
+                  backgroundColor: on ? chipOn : chipBg,
+                  borderColor: on ? "transparent" : chipLine,
                 },
               ]}
             >
-              <Text style={[styles.chipText, { color: on ? onChip : ink }]}>
+              <Text style={[styles.chipText, { color: on ? onInk : ink }]}>
                 {f === "all" ? strings.collection.filterAll : strings.statuses[f]}
               </Text>
             </Pressable>

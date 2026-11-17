@@ -65,11 +65,11 @@ describe("parseViewMode", () => {
 
 describe("isWooden", () => {
   it("is wooden on the Collection tab for shelf views, even when empty", () => {
-    expect(isWooden("spines", "/collection")).toBe(true);
-    expect(isWooden("covers", "/collection")).toBe(true);
+    expect(isWooden("spines", "/")).toBe(true);
+    expect(isWooden("covers", "/")).toBe(true);
   });
   it("is not wooden for list view or other tabs", () => {
-    expect(isWooden("list", "/collection")).toBe(false);
+    expect(isWooden("list", "/")).toBe(false);
     expect(isWooden("spines", "/stats")).toBe(false);
   });
 });

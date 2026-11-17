@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { Cover } from "@/components/book-row";
 import { COVER_GAP, COVER_WIDTH } from "@/lib/cover-grid";
 import { clothFor } from "@/lib/cloth";
 import { spineSize, SPINE_GAP, type ShelfRow } from "@/lib/shelves";
 import { strings } from "@/lib/strings";
-import { useColors } from "@/lib/theme";
+import { serif, useColors } from "@/lib/theme";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const PULL_MS = 300;
@@ -39,7 +39,7 @@ function PulledCover({ pulled, title, uri }: { pulled: boolean; title: string; u
   return seen ? <Cover title={title} uri={uri} size={COVER_WIDTH / 48} showTitle /> : null;
 }
 
-export function SpineRow({ row, pulledId, onSpine, onLabel }: { row: ShelfRow; pulledId: string | null; onSpine: (id: string) => void; onLabel?: () => void }) {
+export function SpineRow({ row, pulledId, onSpine, onLabel }: { row: ShelfRow; pulledId: string | null; onSpine: (id: string, e: GestureResponderEvent) => void; onLabel?: () => void }) {
   const c = useColors();
   const pulledHere = row.books.some((b) => b.volumeId === pulledId);
   return (
@@ -51,7 +51,7 @@ export function SpineRow({ row, pulledId, onSpine, onLabel }: { row: ShelfRow; p
           return (
             <AnimatedPressable
               key={b.volumeId}
-              onPress={() => onSpine(b.volumeId)}
+              onPress={(e) => onSpine(b.volumeId, e)}
               accessibilityRole="button"
               accessibilityLabel={strings.collection.bookLabel(b.title, b.authors)}
               style={[
@@ -80,7 +80,7 @@ export function SpineRow({ row, pulledId, onSpine, onLabel }: { row: ShelfRow; p
   );
 }
 
-export function CoverRow({ row, columns, onBook, onLabel }: { row: ShelfRow; columns: number; onBook: (id: string) => void; onLabel?: () => void }) {
+export function CoverRow({ row, columns, onBook, onLabel }: { row: ShelfRow; columns: number; onBook: (id: string, e: GestureResponderEvent) => void; onLabel?: () => void }) {
   const c = useColors();
   const books = row.books;
   return (
@@ -95,7 +95,7 @@ export function CoverRow({ row, columns, onBook, onLabel }: { row: ShelfRow; col
               <View pointerEvents="none" style={[styles.lamp, !book && styles.lampOff]} />
               {book ? (
                 <Pressable
-                  onPress={() => onBook(book.volumeId)}
+                  onPress={(e) => onBook(book.volumeId, e)}
                   accessibilityRole="button"
                   accessibilityLabel={strings.collection.bookLabel(book.title, book.authors)}
                   style={({ pressed }) => [styles.book, pressed && styles.pressed]}
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   },
   band: { position: "absolute", left: 0, right: 0, height: 2, backgroundColor: "rgba(230, 201, 135, 0.7)" },
   // A 90° clockwise rotation, so the title reads top-to-bottom along the spine.
-  spineTitle: { textAlign: "center", color: "#f6e7d4", fontSize: 11, fontWeight: "700", transform: [{ rotate: "90deg" }] },
+  spineTitle: { fontFamily: serif, textAlign: "center", color: "#f6e7d4", fontSize: 11, fontWeight: "700", transform: [{ rotate: "90deg" }] },
   plaque: { position: "absolute", left: 14, top: 2, height: 18, paddingHorizontal: 8, borderRadius: 2, justifyContent: "center", boxShadow: "0 1px 2px rgba(0, 0, 0, 0.5)" },
   plaqueText: { color: "#2a1a0c", fontSize: 10, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase" },
   plankTop: { height: PLANK_TOP },

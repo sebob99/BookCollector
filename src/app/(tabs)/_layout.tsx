@@ -1,9 +1,9 @@
 import { Tabs, usePathname } from "expo-router";
-import { View } from "react-native";
+import { type ColorValue, Text, View } from "react-native";
 import { useViewMode } from "@/lib/collection-view";
 import { isWooden } from "@/lib/shelves";
 import { strings } from "@/lib/strings";
-import { useColors } from "@/lib/theme";
+import { serif, useColors } from "@/lib/theme";
 
 export default function TabLayout() {
   const c = useColors();
@@ -12,10 +12,21 @@ export default function TabLayout() {
   const pathname = usePathname();
   const wooden = isWooden(mode, pathname);
   const wood = () => <View style={{ flex: 1, backgroundImage: c.shelfChrome }} />;
+  // Active tab: bolder label with a short mark underneath (brass on wood, accent on paper).
+  const label = (title: string) =>
+    function TabLabel({ focused, color }: { focused: boolean; color: ColorValue }) {
+      return (
+        <View style={{ alignItems: "center", gap: 5 }}>
+          <Text style={{ color, fontSize: 15, fontWeight: focused ? "700" : "500" }}>{title}</Text>
+          <View style={{ width: 18, height: 2, borderRadius: 1, backgroundColor: focused ? (wooden ? "#e6c987" : c.accent) : "transparent" }} />
+        </View>
+      );
+    };
   return (
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: c.bg },
+        headerTitleStyle: { fontFamily: serif, fontSize: 26 },
         headerTintColor: wooden ? c.onShelf : c.text,
         headerBackground: wooden ? wood : undefined,
         headerShadowVisible: !wooden,
@@ -28,9 +39,9 @@ export default function TabLayout() {
         tabBarLabelPosition: "beside-icon",
       }}
     >
-      <Tabs.Screen name="index" options={{ title: strings.tabs.search }} />
-      <Tabs.Screen name="collection" options={{ title: strings.tabs.collection }} />
-      <Tabs.Screen name="stats" options={{ title: strings.tabs.stats }} />
+      <Tabs.Screen name="index" options={{ title: strings.tabs.collection, tabBarLabel: label(strings.tabs.collection) }} />
+      <Tabs.Screen name="search" options={{ title: strings.tabs.search, tabBarLabel: label(strings.tabs.search) }} />
+      <Tabs.Screen name="stats" options={{ title: strings.tabs.stats, tabBarLabel: label(strings.tabs.stats) }} />
     </Tabs>
   );
 }

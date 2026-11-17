@@ -4,7 +4,7 @@ import { useCollection } from "@/lib/collection-context";
 import { clothFor } from "@/lib/cloth";
 import { barHeight, collectionStats } from "@/lib/stats";
 import { strings } from "@/lib/strings";
-import { useColors } from "@/lib/theme";
+import { serif, useColors } from "@/lib/theme";
 
 const BAR_AREA = 124; // fixed per the design; the plank below never moves
 const COUNT_LABEL = 20; // count text above each bar
@@ -81,10 +81,10 @@ const styles = StyleSheet.create({
   pad: { padding: 16, paddingBottom: 32, gap: 8 },
   empty: { textAlign: "center", marginTop: 32 },
   total: { flexDirection: "row", alignItems: "baseline", gap: 10 },
-  big: { fontSize: 56, fontWeight: "700", lineHeight: 60 },
+  big: { fontFamily: serif, fontSize: 56, fontWeight: "700", lineHeight: 60 },
   counts: { flexDirection: "row", gap: 8, marginTop: 8 },
   count: { flex: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
-  countN: { fontSize: 28, fontWeight: "700" },
+  countN: { fontFamily: serif, fontSize: 28, fontWeight: "700" },
   heading: { marginTop: 20, fontSize: 13, textTransform: "uppercase" },
   months: { flexDirection: "row", alignItems: "flex-end", gap: 12, paddingHorizontal: 10 },
   month: { flex: 1, alignItems: "center", gap: 4 },
