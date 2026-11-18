@@ -33,7 +33,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "BookCollector uses the camera to scan book barcodes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

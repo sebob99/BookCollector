@@ -1,7 +1,9 @@
 import { router } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { BookRow } from "@/components/book-row";
+import { ScanSheet } from "@/components/scan-sheet";
 import { useCollection } from "@/lib/collection-context";
 import type { SearchResult } from "@/lib/parse-volumes";
 import { SearchError, searchBooks } from "@/lib/search-books";
@@ -26,6 +28,7 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const requestId = useRef(0);
 
   async function run(q: string, startIndex: number) {
@@ -50,8 +53,8 @@ export default function SearchScreen() {
     }
   }
 
-  function submit() {
-    const q = input.trim();
+  function submit(text = input) {
+    const q = text.trim();
     if (!q) return;
     setQuery(q);
     setSearched(true);
@@ -77,15 +80,29 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.flex}>
-      <TextInput
-        value={input}
-        onChangeText={setInput}
-        onSubmitEditing={submit}
-        placeholder={strings.search.placeholder}
-        placeholderTextColor={c.subtle}
-        returnKeyType="search"
-        autoCorrect={false}
-        style={[styles.input, { backgroundColor: c.card, color: c.text }]}
+      <View style={styles.bar}>
+        <TextInput
+          value={input}
+          onChangeText={setInput}
+          onSubmitEditing={() => submit()}
+          placeholder={strings.search.placeholder}
+          placeholderTextColor={c.subtle}
+          returnKeyType="search"
+          autoCorrect={false}
+          style={[styles.input, { backgroundColor: c.card, color: c.text }]}
+        />
+        <Pressable onPress={() => setScanning(true)} accessibilityRole="button" accessibilityLabel={strings.scan.open} style={[styles.scan, { backgroundColor: c.card }]}>
+          <SymbolView name={{ ios: "barcode.viewfinder", android: "barcode_scanner", web: "barcode_scanner" }} tintColor={c.accent} size={24} />
+        </Pressable>
+      </View>
+      <ScanSheet
+        visible={scanning}
+        onClose={() => setScanning(false)}
+        onIsbn={(isbn) => {
+          setScanning(false);
+          setInput(isbn);
+          submit(`isbn:${isbn}`);
+        }}
       />
       {status}
       <FlatList
@@ -128,7 +145,9 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  input: { margin: 12, padding: 12, borderRadius: 10, fontSize: 16 },
+  bar: { flexDirection: "row", alignItems: "center", margin: 12, gap: 8 },
+  input: { flex: 1, padding: 12, borderRadius: 10, fontSize: 16 },
+  scan: { padding: 10, borderRadius: 10 },
   center: { alignItems: "center", marginTop: 32, paddingHorizontal: 24 },
   button: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
 });

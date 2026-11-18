@@ -12,6 +12,13 @@ export const strings = {
     rateLimited: "Too many searches right now. Please try again later.",
     failed: "Something went wrong. Check your connection and try again.",
   },
+  scan: {
+    permission: "Camera access is needed to scan a book's barcode.",
+    allow: "Allow camera",
+    openSettings: "Open Settings",
+    close: "Close",
+    open: "Scan ISBN barcode",
+  },
   collection: {
     empty: "Your collection is empty.",
     findBooks: "Find books",
