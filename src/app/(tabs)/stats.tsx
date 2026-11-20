@@ -57,7 +57,9 @@ export default function StatsScreen() {
       {heading(strings.stats.ratings)}
       {s.ratings.map((r) => (
         <View key={r.stars} style={styles.ratingRow}>
-          <Text style={[styles.stars, { color: c.accent }]}>{"★".repeat(r.stars)}</Text>
+          <Text style={[styles.stars, { color: c.text }]} numberOfLines={1} accessibilityLabel={`${r.stars} star${r.stars > 1 ? "s" : ""}`}>
+            {r.stars}x <Text style={{ color: c.accent }}>★</Text>
+          </Text>
           <View style={[styles.track, { backgroundColor: c.card }]}>
             <View style={{ height: "100%", width: `${(r.n / maxRating) * 100}%`, borderRadius: 5, backgroundColor: c.accent }} />
           </View>
@@ -90,7 +92,7 @@ const styles = StyleSheet.create({
   month: { flex: 1, alignItems: "center", gap: 4 },
   monthLabel: { flex: 1, textAlign: "center", fontSize: 13 },
   ratingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  stars: { width: 78, fontSize: 15, letterSpacing: 1 },
+  stars: { minWidth: 44, fontSize: 15, fontWeight: "600" },
   track: { flex: 1, height: 10, borderRadius: 5, overflow: "hidden" },
   ratingN: { width: 18, textAlign: "right", fontWeight: "600" },
   author: { flexDirection: "row", justifyContent: "space-between", gap: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth },
