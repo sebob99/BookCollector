@@ -1,4 +1,4 @@
-import { assertValidPatch, type Book, type Collection } from "./collection";
+import { assertValidPatch, findByIsbn, type Book, type Collection } from "./collection";
 
 /** In-memory Collection; used by tests as the contract reference. */
 export function createMemoryCollection(now: () => number = Date.now): Collection {
@@ -6,8 +6,8 @@ export function createMemoryCollection(now: () => number = Date.now): Collection
   const find = (id: string) => books.find((b) => b.volumeId === id);
   return {
     async add(result) {
-      if (find(result.volumeId)) return false;
-      books.push({ ...result, status: "want_to_read", rating: null, note: null, addedAt: now() });
+      if (find(result.volumeId) || (result.isbn && findByIsbn(books, result.isbn))) return false;
+      books.push({ ...result, status: "want_to_read", rating: null, note: null, owned: true, addedAt: now() });
       return true;
     },
     async list() {

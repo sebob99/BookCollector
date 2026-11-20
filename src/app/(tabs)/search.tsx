@@ -19,7 +19,7 @@ const errorText = (e: unknown) => {
 
 export default function SearchScreen() {
   const c = useColors();
-  const { has, add } = useCollection();
+  const { has, byIsbn, add } = useCollection();
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -101,7 +101,10 @@ export default function SearchScreen() {
         onIsbn={(isbn) => {
           setScanning(false);
           setInput(isbn);
-          submit(`isbn:${isbn}`);
+          // A Book already in the Collection opens directly, without a Catalog search.
+          const existing = byIsbn(isbn);
+          if (existing) router.push({ pathname: "/book/[volumeId]", params: { volumeId: existing.volumeId, scanned: "1" } });
+          else submit(`isbn:${isbn}`);
         }}
       />
       {status}
@@ -113,19 +116,21 @@ export default function SearchScreen() {
         onEndReached={() => hasMore && !loading && !error && run(query, nextIndex)}
         ListFooterComponent={loading && results.length > 0 ? <ActivityIndicator style={{ margin: 16 }} /> : undefined}
         renderItem={({ item }) => {
-          const inCollection = has(item.volumeId);
+          const existing = has(item.volumeId) ? item : item.isbn ? byIsbn(item.isbn) : undefined;
+          const inCollection = existing !== undefined;
           return (
             <BookRow
               {...item}
               onPress={() => router.push({ pathname: "/book/[volumeId]", params: { volumeId: item.volumeId } })}
               right={
                 <Pressable
-                  disabled={inCollection}
                   onPress={() =>
-                    add(item).catch((e) => {
-                      console.error("Failed to add book", e);
-                      Alert.alert(strings.book.saveFailed);
-                    })
+                    existing
+                      ? router.push({ pathname: "/book/[volumeId]", params: { volumeId: existing.volumeId } })
+                      : add(item).catch((e) => {
+                          console.error("Failed to add book", e);
+                          Alert.alert(strings.book.saveFailed);
+                        })
                   }
                   accessibilityRole="button"
                   style={[styles.button, { backgroundColor: inCollection ? c.card : c.accent }]}

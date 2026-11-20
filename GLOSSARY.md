@@ -28,6 +28,22 @@ _Avoid_: Review, score
 The user's optional free text about a Book.
 _Avoid_: Comment, review
 
+**Owned**:
+Whether the user physically has a Book, independent of its Reading status.
+_Avoid_: Bought, in library, have
+
+**Duplicate**:
+A scanned or found book whose ISBN matches an Owned Book already in the Collection.
+_Avoid_: Double, copy, already added
+
+**Series**:
+A named, numbered run of Books, such as a manga or a novel cycle.
+_Avoid_: Reihe, saga, collection, set
+
+**Volume number**:
+A Book's position within its Series. A Book is never itself called a volume.
+_Avoid_: Band, issue, part, index
+
 **Catalog**:
 The external source of book data that searches run against.
 _Avoid_: Database, API, source

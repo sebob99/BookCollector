@@ -1,9 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import Animated, { Easing, FadeInDown, useAnimatedRef, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Image } from "expo-image";
-import type { ReadingStatus } from "@/lib/collection";
+import { findByIsbn, type ReadingStatus } from "@/lib/collection";
 import { clothFor } from "@/lib/cloth";
 import { useCollection } from "@/lib/collection-context";
 import { takeLift } from "@/lib/open-book";
@@ -15,13 +15,18 @@ const STATUSES: ReadingStatus[] = ["want_to_read", "reading", "read"];
 
 export default function BookScreen() {
   const c = useColors();
-  const { volumeId } = useLocalSearchParams<{ volumeId: string }>();
+  const { volumeId, scanned } = useLocalSearchParams<{ volumeId: string; scanned?: string }>();
   const { books, add, update, remove } = useCollection();
   const [error, setError] = useState<string | null>(null);
 
-  const book = books.find((b) => b.volumeId === volumeId);
-  const data = book ?? getSeenResult(volumeId);
+  // A Search result whose ISBN is already in the Collection shows that Book instead.
+  const seen = getSeenResult(volumeId);
+  const book = books.find((b) => b.volumeId === volumeId) ?? (seen?.isbn ? findByIsbn(books, seen.isbn) : undefined);
+  const data = book ?? seen;
+  const id = book?.volumeId ?? volumeId;
   const [note, setNote] = useState(book?.note ?? "");
+  // Ownership when the screen opened, so the scan banner doesn't flip after "Mark as owned".
+  const [ownedOnOpen] = useState(book?.owned);
 
   // The cover grows from where it was tapped (if known) to its place here.
   const [from] = useState(takeLift);
@@ -47,7 +52,7 @@ export default function BookScreen() {
   async function save(patch: Parameters<typeof update>[1]) {
     setError(null);
     try {
-      await update(volumeId, patch);
+      await update(id, patch);
     } catch (e) {
       console.error("Failed to save book", e);
       setError(strings.book.saveFailed);
@@ -61,7 +66,7 @@ export default function BookScreen() {
         text: strings.book.removeConfirm,
         style: "destructive",
         onPress: async () => {
-          await remove(volumeId);
+          await remove(id);
           router.back();
         },
       },
@@ -106,6 +111,22 @@ export default function BookScreen() {
         </Pressable>
       ) : (
         <>
+          {scanned && ownedOnOpen ? (
+            <Text accessibilityRole="alert" style={[styles.banner, { backgroundColor: c.card, color: c.text }]}>{strings.book.alreadyOwned}</Text>
+          ) : scanned && ownedOnOpen === false && !book.owned ? (
+            <View style={[styles.banner, { backgroundColor: c.card }]}>
+              <Text accessibilityRole="alert" style={{ color: c.text }}>{strings.book.notOwnedYet}</Text>
+              <Pressable onPress={() => save({ owned: true })} accessibilityRole="button" style={[styles.primary, { backgroundColor: c.accent }]}>
+                <Text style={{ color: c.onAccent, fontWeight: "600", fontSize: 16 }}>{strings.book.markOwned}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <View style={styles.ownedRow}>
+            <Text style={[styles.label, { color: c.subtle }]}>{strings.book.owned}</Text>
+            <Switch value={book.owned} onValueChange={(owned) => save({ owned })} accessibilityLabel={strings.book.owned} />
+          </View>
+
           <Text style={[styles.label, { color: c.subtle }]}>{strings.book.status}</Text>
           <View style={styles.wrap}>
             {STATUSES.map((s) => (
@@ -161,6 +182,8 @@ export default function BookScreen() {
 const styles = StyleSheet.create({
   pad: { padding: 16, paddingBottom: 48, gap: 8 },
   rest: { gap: 8 },
+  banner: { padding: 12, borderRadius: 10, gap: 8, fontWeight: "600" },
+  ownedRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   display: { height: 258, borderRadius: 14, overflow: "hidden", alignItems: "center", marginBottom: 8 },
   glow: {
     position: "absolute", top: 0, bottom: 22, width: 260,

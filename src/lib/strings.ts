@@ -49,6 +49,10 @@ export const strings = {
     cancel: "Cancel",
     removeConfirm: "Remove",
     saveFailed: "Couldn't save your changes.",
+    owned: "Owned",
+    alreadyOwned: "Already in your collection",
+    notOwnedYet: "On your list, not owned yet",
+    markOwned: "Mark as owned",
   },
   stats: {
     empty: "Add books to see your stats.",

@@ -1,7 +1,8 @@
 import * as SQLite from "expo-sqlite";
+import { parseIsbn, toIsbn13 } from "./isbn";
 import { assertValidPatch, type Book, type BookPatch, type Collection, type ReadingStatus } from "./collection";
 
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 async function migrate(db: SQLite.SQLiteDatabase) {
   const row = await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
@@ -26,8 +27,26 @@ async function migrate(db: SQLite.SQLiteDatabase) {
       CREATE INDEX books_added_at ON books (added_at);
     `);
     version = 1;
+    await db.execAsync("PRAGMA user_version = 1");
   }
-  await db.execAsync(`PRAGMA user_version = ${DB_VERSION}`);
+  if (version === 1) {
+    // Owned defaults to yes for existing Books; ISBNs become ISBN-13 so Duplicates compare by equality.
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        ALTER TABLE books ADD COLUMN owned INTEGER NOT NULL DEFAULT 1 CHECK (owned IN (0, 1));
+        CREATE INDEX books_isbn ON books (isbn);
+      `);
+      const rows = await db.getAllAsync<{ volume_id: string; isbn: string }>(
+        "SELECT volume_id, isbn FROM books WHERE length(isbn) = 10",
+      );
+      for (const r of rows) {
+        const valid = parseIsbn(r.isbn);
+        if (valid) await db.runAsync("UPDATE books SET isbn = ? WHERE volume_id = ?", [toIsbn13(valid), r.volume_id]);
+      }
+      await db.execAsync("PRAGMA user_version = 2");
+    });
+    version = 2;
+  }
 }
 
 type Row = {
@@ -40,6 +59,7 @@ type Row = {
   status: ReadingStatus;
   rating: number | null;
   note: string | null;
+  owned: number;
   added_at: number;
 };
 
@@ -53,21 +73,25 @@ const toBook = (r: Row): Book => ({
   status: r.status,
   rating: r.rating,
   note: r.note,
+  owned: r.owned === 1,
   addedAt: r.added_at,
 });
 
 // Column names come from this fixed map, never from input; values are always bound.
-const PATCH_COLUMNS: Record<keyof BookPatch, string> = { status: "status", rating: "rating", note: "note" };
+const PATCH_COLUMNS: Record<keyof BookPatch, string> = { status: "status", rating: "rating", note: "note", owned: "owned" };
 
 export async function openSqliteCollection(): Promise<Collection> {
   const db = await SQLite.openDatabaseAsync("collection.db");
   await migrate(db);
   return {
     async add(r) {
+      const isbn = r.isbn; // already ISBN-13 from parseVolumes
+      // Skipped when the volume id or the ISBN is already in the Collection.
       const res = await db.runAsync(
         `INSERT OR IGNORE INTO books (volume_id, title, authors, cover_url, year, isbn, added_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [r.volumeId, r.title, JSON.stringify(r.authors), r.coverUrl, r.year, r.isbn, Date.now()],
+         SELECT ?, ?, ?, ?, ?, ?, ?
+         WHERE ? IS NULL OR NOT EXISTS (SELECT 1 FROM books WHERE isbn = ?)`,
+        [r.volumeId, r.title, JSON.stringify(r.authors), r.coverUrl, r.year, isbn, Date.now(), isbn, isbn],
       );
       return res.changes === 1;
     },
@@ -84,7 +108,7 @@ export async function openSqliteCollection(): Promise<Collection> {
       if (keys.length === 0) return;
       const res = await db.runAsync(
         `UPDATE books SET ${keys.map((k) => `${PATCH_COLUMNS[k]} = ?`).join(", ")} WHERE volume_id = ?`,
-        [...keys.map((k) => patch[k] as string | number | null), volumeId],
+        [...keys.map((k) => { const v = patch[k]; return typeof v === "boolean" ? Number(v) : (v as string | number | null); }), volumeId],
       );
       if (res.changes === 0) throw new Error("Book not in collection");
     },

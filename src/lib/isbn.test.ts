@@ -1,4 +1,4 @@
-import { parseIsbn } from "./isbn";
+import { parseIsbn, toIsbn13 } from "./isbn";
 
 describe("parseIsbn", () => {
   it("accepts a valid ISBN-13, with or without separators", () => {
@@ -16,5 +16,15 @@ describe("parseIsbn", () => {
     expect(parseIsbn("12345")).toBeNull();
     expect(parseIsbn("pride and prejudice")).toBeNull();
     expect(parseIsbn("")).toBeNull();
+  });
+});
+
+describe("toIsbn13", () => {
+  it("converts an ISBN-10 to its ISBN-13, including X check digits", () => {
+    expect(toIsbn13("0141439513")).toBe("9780141439518");
+    expect(toIsbn13("080442957X")).toBe("9780804429573");
+  });
+  it("leaves an ISBN-13 unchanged", () => {
+    expect(toIsbn13("9780141439518")).toBe("9780141439518");
   });
 });

@@ -1,3 +1,5 @@
+import { parseIsbn, toIsbn13 } from "./isbn";
+
 export type SearchResult = {
   volumeId: string;
   title: string;
@@ -18,12 +20,14 @@ function parseYear(date: unknown): number | null {
   return m ? Number(m[1]) : null;
 }
 
-function parseIsbn(ids: unknown): string | null {
+function pickIsbn(ids: unknown): string | null {
   if (!Array.isArray(ids)) return null;
   const list = ids.filter(isRecord) as Identifier[];
   const pick = (t: string) =>
     list.find((i) => i.type === t && typeof i.identifier === "string")?.identifier as string | undefined;
-  return pick("ISBN_13") ?? pick("ISBN_10") ?? null;
+  const raw = pick("ISBN_13") ?? pick("ISBN_10");
+  const isbn = raw ? parseIsbn(raw) : null; // Catalog data is untrusted; bad checksums become null
+  return isbn ? toIsbn13(isbn) : null;
 }
 
 function parseCover(links: unknown): string | null {
@@ -45,7 +49,7 @@ export function parseVolumes(json: unknown): SearchResult[] {
       authors: Array.isArray(info.authors) ? info.authors.filter((a): a is string => typeof a === "string") : [],
       coverUrl: parseCover(info.imageLinks),
       year: parseYear(info.publishedDate),
-      isbn: parseIsbn(info.industryIdentifiers),
+      isbn: pickIsbn(info.industryIdentifiers),
     });
   }
   return results;

@@ -1,3 +1,4 @@
+import { findByIsbn } from "./collection";
 import { createMemoryCollection } from "./memory-collection";
 import type { SearchResult } from "./parse-volumes";
 
@@ -16,7 +17,7 @@ describe("Collection", () => {
     expect(await c.add(result("a"))).toBe(true);
 
     expect(await c.list()).toEqual([
-      { ...result("a"), status: "want_to_read", rating: null, note: null, addedAt: 1000 },
+      { ...result("a"), status: "want_to_read", rating: null, note: null, owned: true, addedAt: 1000 },
     ]);
   });
 
@@ -25,6 +26,28 @@ describe("Collection", () => {
     await c.add(result("a"));
     expect(await c.add(result("a"))).toBe(false);
     expect(await c.list()).toHaveLength(1);
+  });
+
+  it("rejects a different volume with an ISBN already in the Collection", async () => {
+    const c = createMemoryCollection();
+    await c.add({ ...result("a"), isbn: "9780141439518" });
+    expect(await c.add({ ...result("b"), isbn: "9780141439518" })).toBe(false);
+    expect((await c.list()).map((b) => b.volumeId)).toEqual(["a"]);
+  });
+
+  it("allows several Books without an ISBN", async () => {
+    const c = createMemoryCollection();
+    await c.add(result("a"));
+    expect(await c.add(result("b"))).toBe(true);
+  });
+
+  it("can mark a Book as not owned and owned again", async () => {
+    const c = createMemoryCollection();
+    await c.add(result("a"));
+    await c.update("a", { owned: false });
+    expect((await c.list())[0].owned).toBe(false);
+    await c.update("a", { owned: true });
+    expect((await c.list())[0].owned).toBe(true);
   });
 
   it("lists newest first, with later inserts first on equal timestamps", async () => {
@@ -77,5 +100,20 @@ describe("Collection", () => {
     await c.remove("a");
     expect(await c.list()).toEqual([]);
     expect(await c.add(result("a"))).toBe(true);
+  });
+});
+
+describe("findByIsbn", () => {
+  const books = [{ ...result("a"), isbn: "9780141439518" }, result("b")];
+  it("finds a Book by ISBN-13 or by the same book's ISBN-10", () => {
+    expect(findByIsbn(books, "9780141439518")?.volumeId).toBe("a");
+    expect(findByIsbn(books, "0141439513")?.volumeId).toBe("a");
+  });
+  it("prefers the Owned Book when an ISBN is stored twice", () => {
+    const twice = [{ ...result("new"), isbn: "9780141439518", owned: false }, { ...result("old"), isbn: "9780141439518", owned: true }];
+    expect(findByIsbn(twice, "9780141439518")?.volumeId).toBe("old");
+  });
+  it("finds nothing for an unknown ISBN", () => {
+    expect(findByIsbn(books, "9780804429573")).toBeUndefined();
   });
 });

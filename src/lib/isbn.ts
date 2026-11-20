@@ -11,3 +11,11 @@ export function parseIsbn(raw: string): string | null {
   }
   return null;
 }
+
+/** Same book as ISBN-13; expects a value already normalized by parseIsbn. */
+export function toIsbn13(isbn: string): string {
+  if (isbn.length === 13) return isbn;
+  const body = "978" + isbn.slice(0, 9);
+  const sum = [...body].reduce((t, ch, i) => t + Number(ch) * (i % 2 ? 3 : 1), 0);
+  return body + ((10 - (sum % 10)) % 10);
+}

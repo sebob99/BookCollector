@@ -51,9 +51,14 @@ describe("parseVolumes", () => {
     expect(parseVolumes(vol({ publishedDate: "unknown" }))[0].year).toBeNull();
   });
 
-  it("falls back to ISBN_10 when there is no ISBN_13", () => {
-    const ids = [{ type: "ISBN_10", identifier: "0553804576" }];
-    expect(parseVolumes(vol({ industryIdentifiers: ids }))[0].isbn).toBe("0553804576");
+  it("drops a malformed ISBN instead of inventing an ISBN-13", () => {
+    const ids = [{ type: "ISBN_10", identifier: "0553804577" }];
+    expect(parseVolumes(vol({ industryIdentifiers: ids }))[0].isbn).toBeNull();
+  });
+
+  it("converts ISBN_10 to ISBN-13 when there is no ISBN_13", () => {
+    const ids = [{ type: "ISBN_10", identifier: "055380457X" }];
+    expect(parseVolumes(vol({ industryIdentifiers: ids }))[0].isbn).toBe("9780553804577");
   });
 
   it("drops entries without an id or a title", () => {

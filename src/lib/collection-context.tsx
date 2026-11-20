@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-import type { Book, BookPatch, Collection } from "./collection";
+import { findByIsbn, type Book, type BookPatch, type Collection } from "./collection";
 import type { SearchResult } from "./parse-volumes";
 import { openSqliteCollection } from "./sqlite-collection";
 import { strings } from "./strings";
@@ -9,6 +9,7 @@ import { useColors } from "./theme";
 type Value = {
   books: Book[];
   has: (volumeId: string) => boolean;
+  byIsbn: (isbn: string) => Book | undefined;
   add: (r: SearchResult) => Promise<void>;
   update: (volumeId: string, patch: BookPatch) => Promise<void>;
   remove: (volumeId: string) => Promise<void>;
@@ -54,6 +55,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     return {
       books,
       has: (id) => ids.has(id),
+      byIsbn: (isbn) => findByIsbn(books, isbn),
       add: (r) => mutate((c) => c.add(r)),
       update: (id, patch) => mutate((c) => c.update(id, patch)),
       remove: (id) => mutate((c) => c.remove(id)),

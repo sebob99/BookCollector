@@ -5,7 +5,7 @@ const DAY = 864e5;
 const NOW = new Date(2026, 10, 13).getTime();
 const book = (id: string, over: Partial<Book> = {}): Book => ({
   volumeId: id, title: id, authors: ["Jane Austen"], coverUrl: null, year: 1813, isbn: null,
-  status: "want_to_read", rating: null, note: null, addedAt: NOW, ...over,
+  status: "want_to_read", rating: null, note: null, owned: true, addedAt: NOW, ...over,
 });
 
 describe("collectionStats", () => {
