@@ -2,6 +2,7 @@ import { LibreCaslonText_700Bold, useFonts } from "@expo-google-fonts/libre-casl
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import { useColorScheme } from "react-native";
 import { CollectionProvider } from "@/lib/collection-context";
 import { serif, useColors } from "@/lib/theme";
 
@@ -9,6 +10,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const c = useColors();
+  const scheme = useColorScheme();
   const [loaded, error] = useFonts({ [serif]: LibreCaslonText_700Bold });
   useEffect(() => {
     if (loaded || error) SplashScreen.hideAsync();
@@ -21,6 +23,9 @@ export default function RootLayout() {
         screenOptions={{
           headerStyle: { backgroundColor: c.bg },
           headerTintColor: c.text,
+          // Without a navigation theme the iOS header defaults to light style, and the Liquid Glass back button
+          // follows it after the push — black on the dark header. Match the app's scheme instead.
+          headerUserInterfaceStyle: scheme === "dark" ? "dark" : "light",
           contentStyle: { backgroundColor: c.bg },
         }}
       >
